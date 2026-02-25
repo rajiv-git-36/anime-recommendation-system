@@ -40,7 +40,7 @@ def add_bg_from_url():
          <style>
          .stApp {{
              /* BACKGROUND IMAGE */
-             background-image: url("https://4kwallpapers.com/images/walls/thumbs_3t/14938.jpg");
+             background-image: url("https://images2.alphacoders.com/100/thumb-1920-1006672.jpg");
              background-attachment: fixed;
              background-size: cover;
          }}
