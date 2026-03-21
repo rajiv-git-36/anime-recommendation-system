@@ -1,6 +1,35 @@
 import streamlit as st
 import pandas as pd
 import pickle
+import requests
+import time
+
+st.set_page_config(page_title="Anime Recommendation System", layout="wide", page_icon="🎬")
+
+@st.cache_data(show_spinner=False)
+def fetch_anime_details(anime_title):
+    """Fetching poster images and synopsis from the Jikan API."""
+    url = f"https://api.jikan.moe/v4/anime?q={anime_title}&limit=1"
+    
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if data['data']:
+                poster_url = data['data'][0]['images']['jpg']['large_image_url']
+                synopsis = data['data'][0]['synopsis']
+                
+                # Truncate synopsis so it fits cleanly on the card
+                #if synopsis and len(synopsis) > 300:
+                #    synopsis = synopsis[:300] + "..."
+                    
+                return poster_url, synopsis
+                
+        # Fallback if the API can't find the exact title
+        return "https://via.placeholder.com/225x318?text=No+Image", "Synopsis not available."
+        
+    except Exception as e:
+        return "https://via.placeholder.com/225x318?text=Error", "Error fetching API data."
 
 # --- 1. Load the Saved Models ---
 @st.cache_resource  
@@ -102,32 +131,25 @@ selected_anime = st.selectbox("Select an Anime you have watched:", anime_df['nam
 
 
 if st.button("Recommend Anime"):
-    with st.spinner("Calculating hybrid scores..."):
+    with st.spinner("Calculating hybrid scores and fetching posters from MyAnimeList..."):
+        # Get the 5 titles from your machine learning engine
         recommendations = hybrid_recommendation(user_id, selected_anime)
         
-        st.markdown(f"The Top 5 Picks for User {user_id}:")
+        st.markdown(f"### The Top 5 Picks for User {user_id}:")
         
         # Creating 5 columns for the cards
         cols = st.columns(5)
         
         for i, anime in enumerate(recommendations):
             with cols[i]:
-                st.markdown(
-                    f"""
-                    <div style="
-                        background-color: rgba(0, 0, 0, 0.6);
-                        padding: 10px;
-                        border-radius: 10px;
-                        border: 1px solid rgba(255, 255, 255, 0.2);
-                        text-align: center;
-                        height: 150px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: center;">
-                        <h3 style="color: #FFD700; margin:0; text-shadow: 2px 2px 4px black;">#{i+1}</h3>
-                        <p style="color: white; font-weight: bold; font-size: 14px; margin:0; text-shadow: 1px 1px 2px black;">{anime}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                poster, synopsis = fetch_anime_details(anime)
+                
+                with st.container(border=True):
+                    st.image(poster, use_container_width=True)
+                    st.markdown(f"**#{i+1} {anime}**")
+                    
+                    # This creates a clickable dropdown for the text!
+                    with st.expander("Read Synopsis"):
+                        st.caption(synopsis)
+                
+                time.sleep(0.4)
